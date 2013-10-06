@@ -1612,6 +1612,24 @@ bool ReorderBufferEntry::issueast_tsx(IssueState& state, W64 assistid, W64 ra,
 					return true;
 
 				// Issue all the memory writes to cache
+#ifdef USE_VECTOR_AS_TSX_BUFFER
+                for( uint32_t j =0; j < th.tsxMemoryBuffer.getNumEntries(); j++) 
+                {
+                    TsxMemoryContent *tsx_content = th.tsxMemoryBuffer.getEntryById(j);
+                    if (tsx_content->virtaddr == 0)
+                        continue;
+
+                    Memory::MemoryRequest *request = core.memoryHierarchy->
+                        get_free_request(core.coreid);
+                    request->init(core.coreid, threadid,
+                            tsx_content->physaddr << 3,
+                            0, sim_cycle, false, 0x11223344, 0,
+                            Memory::MEMORY_OP_WRITE);
+                    request->set_coreSignal(&th.core_tsx_commit_end_signal);
+                    assert(core.memoryHierarchy->access_cache(request));
+                    th.core_tsx_write_count++;
+                }               
+#else
 				for( int i =0; i < th.tsxMemoryBuffer.getSetCount(); i++) {
 					TsxMemoryContent *tsx_content_array = &th.tsxMemoryBuffer.sets[i].data[0];
 					for( int j =0; j < th.tsxMemoryBuffer.getWayCount(); j++) {
@@ -1629,6 +1647,7 @@ bool ReorderBufferEntry::issueast_tsx(IssueState& state, W64 assistid, W64 ra,
 						th.core_tsx_write_count++;
 					}
 				}
+#endif
 
 				Memory::MemoryRequest *request = core.memoryHierarchy->get_free_request(core.coreid);
 				assert(request != NULL);

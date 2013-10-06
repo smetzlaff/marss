@@ -1585,3 +1585,56 @@ namespace OOO_CORE_MODEL {
     CycleTimer ctwriteback;
     CycleTimer ctcommit;
 };
+
+
+#ifdef USE_VECTOR_AS_TSX_BUFFER
+void TSXMemoryBuffer::reset(void)
+{
+    content.clear();
+}
+
+TsxMemoryContent* TSXMemoryBuffer::select(Waddr addr)
+{
+    TsxMemoryContent* entry = getEntryByVAddr(addr);
+
+    if(entry == NULL)
+    {
+        TsxMemoryContent new_entry;
+        new_entry.reset();
+        content.push_back(new_entry);
+        entry = &content.back();
+    }
+
+    assert(entry != NULL);
+    return entry;
+}
+
+TsxMemoryContent* TSXMemoryBuffer::probe(Waddr addr)
+{
+    TsxMemoryContent* entry = getEntryByVAddr(addr);
+    return entry;
+}
+
+TsxMemoryContent* TSXMemoryBuffer::getEntryByVAddr(Waddr v_addr)
+{
+    for(std::vector<TsxMemoryContent>::iterator it = content.begin(); it != content.end(); ++it)
+    {
+        if(it->virtaddr == v_addr)
+        {
+            return &(*it);
+        }
+    }
+    return NULL;
+}
+
+TsxMemoryContent* TSXMemoryBuffer::getEntryById(uint32_t id)
+{
+    assert(id < getNumEntries());
+    return &(content[id]);
+}
+
+uint32_t TSXMemoryBuffer::getNumEntries(void)
+{
+    return content.size();
+}
+#endif

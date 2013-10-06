@@ -2270,6 +2270,20 @@ bool ThreadContext::core_tsx_commit(void *arg) {
 		flush_pipeline();
 	} else { //on success
 		//write memory buffer to the memory
+#ifdef USE_VECTOR_AS_TSX_BUFFER
+        for( uint32_t j =0; j < tsxMemoryBuffer.getNumEntries(); j++) 
+        {
+            TsxMemoryContent *tsx_content = tsxMemoryBuffer.getEntryById(j);
+            if (tsx_content->virtaddr == 0)
+                continue;
+
+            //ptl_logfile << std::hex << "XEND writing to virt 0x" << tsx_content->virtaddr << " phy: 0x" << tsx_content->physaddr << " value: 0x" << tsx_content->data << " mask: 0x" << tsx_content->bytemask << " shift: 0x" << tsx_content->sizeshift << std::dec << endl;
+            ctx.storemask_virt(tsx_content->virtaddr,
+                    tsx_content->data,
+                    tsx_content->bytemask,
+                    tsx_content->sizeshift);
+        }       
+#else
 		for( int i =0; i < tsxMemoryBuffer.getSetCount(); i++) {
 			TsxMemoryContent *tsx_content_array = &tsxMemoryBuffer.sets[i].data[0];
 			for( int j =0; j < tsxMemoryBuffer.getWayCount(); j++) {
@@ -2282,6 +2296,7 @@ bool ThreadContext::core_tsx_commit(void *arg) {
 						tsx_content_array[j].sizeshift);
 			}
 		}
+#endif
 		tsxMemoryBuffer.reset();
 	}
 
