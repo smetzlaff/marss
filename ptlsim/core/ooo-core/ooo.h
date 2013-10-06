@@ -1076,7 +1076,12 @@ namespace OOO_CORE_MODEL {
         bool core_tsx_abort(void *arg);
         int core_tsx_write_count;
 
-	AssociativeArray<W64, TsxMemoryContent ,4096, 4, 250> tsxMemoryBuffer; //linesize , way count and set count numbers are for temporary
+        // FIX: the associative array for the TSX buffer mimics a cache with a specific linesize, but the data currently is not accessed like in a cache.
+        // Currently each entry, independent of its length, used a full line of the associative array. This causes aliasing of two (or more) data words
+        // that map the same line, i.e. they overwrite each others buffer entries. A minimal fix is to set the linesize of the associative array to
+        // minimum (1) such that each data word gets its own buffer entry.
+        // A better fix of this issue would be to use the linesize of the L1 data cache and align the words in the TSX buffer according to their block offsets.
+        AssociativeArray<W64, TsxMemoryContent ,4096, 4, 1> tsxMemoryBuffer; //linesize , way count and set count numbers are for temporary
     };
 
     //  class MemoryHierarchy;

@@ -2113,6 +2113,13 @@ int ReorderBufferEntry::commit() {
             } else {
 		    if(thread.ctx.tsx_mode > 0) {
 			    TsxMemoryContent* tsx_content = thread.tsxMemoryBuffer.select(lsq->virtaddr) ;
+
+                // check for aliasing of two accesses
+                if((tsx_content->data != 0) && (tsx_content->bytemask != 0))
+                {
+                    assert(tsx_content->virtaddr == lsq->virtaddr);
+                }
+
 			    tsx_content->data = lsq->data;
 			    tsx_content->virtaddr = lsq->virtaddr;
 				tsx_content->physaddr = lsq->physaddr;
